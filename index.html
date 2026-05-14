@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw Files</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--sub:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--purple:#bc8cff;--hover:#1f2937}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+.header{padding:1rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem}
+.header h1{font-size:1.2rem;color:var(--accent);display:flex;align-items:center;gap:.5rem}
+.path-bar{flex:1;display:flex;align-items:center;gap:.5rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.4rem .8rem}
+.path-bar input{flex:1;background:none;border:none;color:var(--text);font-size:.9rem;outline:none;font-family:monospace}
+.path-seg{color:var(--accent);cursor:pointer;padding:.1rem .3rem;border-radius:4px}
+.path-seg:hover{background:rgba(88,166,255,.15)}
+.path-sep{color:var(--sub)}
+.actions{display:flex;gap:.5rem}
+.btn{padding:.5rem 1rem;border:none;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;display:flex;align-items:center;gap:.3rem}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.8}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--hover)}
+.btn-danger{background:var(--red);color:#fff}
+.main{flex:1;display:flex;overflow:hidden}
+.sidebar{width:250px;background:var(--card);border-right:1px solid var(--border);padding:1rem;overflow-y:auto}
+.sidebar h3{font-size:.8rem;color:var(--sub);margin-bottom:.8rem;text-transform:uppercase;letter-spacing:.5px}
+.fav-item{display:flex;align-items:center;gap:.5rem;padding:.5rem;border-radius:6px;cursor:pointer;font-size:.85rem;color:var(--text);transition:background .2s}
+.fav-item:hover{background:var(--hover)}
+.fav-item .ico{font-size:1rem}
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.toolbar{padding:.5rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;background:var(--card)}
+.toolbar select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.3rem .5rem;border-radius:6px;font-size:.8rem}
+.toolbar input{flex:1;max-width:300px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.3rem .6rem;border-radius:6px;font-size:.8rem;outline:none}
+.file-list{flex:1;overflow-y:auto;padding:.5rem}
+.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.8rem;padding:.5rem}
+.file-item{background:var(--card);border:1px solid transparent;border-radius:10px;padding:1rem;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.file-item:hover{border-color:var(--accent);background:var(--hover)}
+.file-item.selected{border-color:var(--accent);background:rgba(88,166,255,.1)}
+.file-item .icon{font-size:2.5rem;margin-bottom:.5rem}
+.file-item .name{font-size:.8rem;word-break:break-all;line-height:1.3;max-height:2.6em;overflow:hidden}
+.file-item .meta{font-size:.7rem;color:var(--sub);margin-top:.3rem}
+.file-list-view .file-item{display:flex;align-items:center;gap:1rem;padding:.6rem 1rem;text-align:left;border-radius:6px}
+.file-list-view .file-item .icon{font-size:1.3rem;margin:0;width:30px;text-align:center}
+.file-list-view .file-item .name{flex:1}
+.file-list-view .file-item .meta{margin:0;min-width:100px}
+.status-bar{padding:.4rem 1rem;background:var(--card);border-top:1px solid var(--border);font-size:.75rem;color:var(--sub);display:flex;justify-content:space-between}
+.preview-panel{width:350px;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.preview-panel.hidden{display:none}
+.preview-header{padding:1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.preview-header h3{font-size:.9rem;color:var(--accent)}
+.preview-content{flex:1;overflow-y:auto;padding:1rem}
+.preview-content pre{background:var(--bg);padding:1rem;border-radius:8px;font-size:.8rem;white-space:pre-wrap;word-break:break-all;max-height:500px;overflow:auto;line-height:1.5}
+.preview-content img{max-width:100%;border-radius:8px}
+.preview-content .info-row{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.85rem}
+.preview-content .info-row .label{color:var(--sub)}
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);padding:.6rem 1.2rem;border-radius:8px;font-weight:600;font-size:.85rem;opacity:0;transition:opacity .3s;z-index:100}
+.toast.show{opacity:1}
+.toast.success{background:var(--green);color:#fff}
+.toast.error{background:var(--red);color:#fff}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:90%;max-width:500px}
+.modal h3{color:var(--accent);margin-bottom:1rem}
+.modal input,.modal textarea{width:100%;padding:.5rem;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:.9rem;margin-bottom:.8rem;outline:none}
+.modal textarea{height:150px;font-family:monospace;resize:vertical}
+.modal .btn-row{display:flex;gap:.5rem;justify-content:flex-end}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📁 OpenClaw Files</h1>
+  <div class="path-bar">
+    <span class="path-seg" onclick="navigate('/')">🏠</span>
+    <span class="path-sep">/</span>
+    <input id="pathInput" value="/home/admin123/.openclaw/workspace" onkeydown="if(event.key==='Enter')navigate(this.value)">
+  </div>
+  <div class="actions">
+    <button class="btn btn-ghost" onclick="refreshDir()">🔄 刷新</button>
+    <button class="btn btn-ghost" onclick="showNewFile()">📄 新建文件</button>
+    <button class="btn btn-ghost" onclick="showNewDir()">📂 新建目录</button>
+    <button class="btn btn-primary" onclick="togglePreview()">👁️ 预览</button>
+  </div>
+</div>
+<div class="main">
+  <div class="sidebar">
+    <h3>⚡ 快捷访问</h3>
+    <div class="fav-item" onclick="navigate('/home/admin123/.openclaw')"><span class="ico">🦞</span> OpenClaw</div>
+    <div class="fav-item" onclick="navigate('/home/admin123/.openclaw/workspace')"><span class="ico">💼</span> Workspace</div>
+    <div class="fav-item" onclick="navigate('/home/admin123/.openclaw/workspace/memory')"><span class="ico">🧠</span> Memory</div>
+    <div class="fav-item" onclick="navigate('/home/admin123/.openclaw/workspace/skills')"><span class="ico">🎯</span> Skills</div>
+    <div class="fav-item" onclick="navigate('/data_share')"><span class="ico">📀</span> 共享文件</div>
+    <div class="fav-item" onclick="navigate('/tmp')"><span class="ico">🗂️</span> /tmp</div>
+    <hr style="border-color:var(--border);margin:1rem 0">
+    <h3>🔧 操作</h3>
+    <div class="fav-item" onclick="refreshDir()"><span class="ico">🔄</span> 刷新当前目录</div>
+    <div class="fav-item" onclick="execHere('ls -la')"><span class="ico">📋</span> 列出详情</div>
+    <div class="fav-item" onclick="execHere('df -h')"><span class="ico">💾</span> 磁盘空间</div>
+    <div class="fav-item" onclick="execHere('du -sh *')"><span class="ico">📊</span> 目录大小</div>
+  </div>
+  <div class="content">
+    <div class="toolbar">
+      <select id="sortMode" onchange="sortFiles()">
+        <option value="name">名称</option>
+        <option value="size">大小</option>
+        <option value="date">修改时间</option>
+        <option value="type">类型</option>
+      </select>
+      <select id="viewMode" onchange="setViewMode()">
+        <option value="grid">网格</option>
+        <option value="list">列表</option>
+      </select>
+      <input id="searchInput" placeholder="🔍 搜索文件..." oninput="filterFiles()">
+      <span style="margin-left:auto;font-size:.8rem;color:var(--sub)" id="itemCount">-</span>
+    </div>
+    <div class="file-list">
+      <div class="file-grid" id="fileGrid"></div>
+    </div>
+    <div class="status-bar">
+      <span id="statusLeft">就绪</span>
+      <span id="statusRight"></span>
+    </div>
+  </div>
+  <div class="preview-panel hidden" id="previewPanel">
+    <div class="preview-header">
+      <h3>📄 预览</h3>
+      <button class="btn btn-ghost" style="padding:.3rem .6rem" onclick="togglePreview()">×</button>
+    </div>
+    <div class="preview-content" id="previewContent">
+      <p style="color:var(--sub);text-align:center;padding:2rem">选择文件预览</p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let currentPath='/home/admin123/.openclaw/workspace';
+let files=[];
+let selectedFiles=new Set();
+let previewVisible=true;
+
+const ICONS={dir:'📁',file:'📄',py:'🐍',js:'📜',html:'🌐',css:'🎨',json:'📋',md:'📝',txt:'📃',sh:'⚙️',yaml:'🔧',yml:'🔧',svg:'🎨',png:'🖼️',jpg:'🖼️',gif:'🖼️',pdf:'📕',zip:'📦',tar:'📦',gz:'📦',log:'📋',conf:'⚙️',env:'🔒',git:'📂',docker:'🐳'};
+
+function getIcon(name,isDir){
+  if(isDir)return ICONS.dir;
+  const ext=name.split('.').pop().toLowerCase();
+  return ICONS[ext]||ICONS.file;
+}
+
+function formatSize(bytes){
+  if(!bytes)return '-';
+  const units=['B','KB','MB','GB'];
+  let i=0;
+  let s=bytes;
+  while(s>=1024&&i<3){s/=1024;i++}
+  return s.toFixed(i?1:0)+' '+units[i];
+}
+
+function navigate(path){
+  currentPath=path.replace(/\/+/g,'/').replace(/\/$/,'')||'/';
+  $('pathInput').value=currentPath;
+  refreshDir();
+}
+
+function refreshDir(){
+  $('statusLeft').textContent='加载中...';
+  // Using exec to list directory since we need server-side access
+  // In real usage, this would call the Gateway API
+  fetch(gwUrl()+'/tools/invoke',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+gwToken()},
+    body:JSON.stringify({tool:'dir_list',args:{node:'localhost',path:currentPath}})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.result){
+      try{
+        const data=typeof d.result==='string'?JSON.parse(d.result):d.result;
+        files=(data.entries||data||[]).map(f=>({
+          name:f.name,
+          path:f.path||currentPath+'/'+f.name,
+          size:f.size||0,
+          isDir:f.isDir||f.type==='directory',
+          mtime:f.mtime||f.modified||''
+        }));
+        renderFiles();
+        $('statusLeft').textContent=`${files.length} 个项目`;
+        $('itemCount').textContent=`共 ${files.length} 项`;
+      }catch(e){
+        $('statusLeft').textContent='解析失败: '+e.message;
+      }
+    }else{
+      $('statusLeft').textContent='加载失败';
+    }
+  })
+  .catch(e=>{
+    $('statusLeft').textContent='连接失败: '+e.message;
+    toast('连接 Gateway 失败','error');
+  });
+}
+
+function renderFiles(){
+  const sorted=sortFiles([...files]);
+  const filtered=filterByName(sorted);
+  const grid=$('fileGrid');
+  const mode=$('viewMode').value;
+  grid.className=mode==='list'?'file-list-view file-grid':'file-grid';
+  grid.innerHTML=filtered.map(f=>{
+    const icon=getIcon(f.name,f.isDir);
+    const sel=selectedFiles.has(f.path)?'selected':'';
+    return `
+      <div class="file-item ${sel}" data-path="${f.path}" data-dir="${f.isDir}"
+           onclick="selectFile(event,'${f.path}')" ondblclick="${f.isDir?`navigate('${f.path}')`:`previewFile('${f.path}')`}">
+        <div class="icon">${icon}</div>
+        <div class="name" title="${f.name}">${f.name}</div>
+        <div class="meta">${f.isDir?'目录':formatSize(f.size)}</div>
+      </div>`;
+  }).join('');
+}
+
+function sortFiles(arr){
+  const mode=$('sortMode').value;
+  const list=arr||files;
+  list.sort((a,b)=>{
+    if(a.isDir&&!b.isDir)return -1;
+    if(!a.isDir&&b.isDir)return 1;
+    if(mode==='name')return a.name.localeCompare(b.name);
+    if(mode==='size')return (b.size||0)-(a.size||0);
+    if(mode==='date')return new Date(b.mtime)-new Date(a.mtime);
+    return a.name.localeCompare(b.name);
+  });
+  if(!arr)renderFiles();
+  return list;
+}
+
+function filterByName(arr){
+  const q=$('searchInput').value.toLowerCase();
+  if(!q)return arr;
+  return arr.filter(f=>f.name.toLowerCase().includes(q));
+}
+
+function filterFiles(){renderFiles()}
+
+function selectFile(e,path){
+  if(e.ctrlKey||e.metaKey){
+    if(selectedFiles.has(path))selectedFiles.delete(path);
+    else selectedFiles.add(path);
+  }else{
+    selectedFiles.clear();
+    selectedFiles.add(path);
+  }
+  renderFiles();
+  if(previewVisible)previewFile(path);
+}
+
+function previewFile(path){
+  const f=files.find(x=>x.path===path);
+  if(!f)return;
+  if(f.isDir){
+    $('previewContent').innerHTML=`<div style="text-align:center;padding:2rem"><div style="font-size:3rem;margin-bottom:1rem">📁</div><h3>${f.name}</h3><p style="color:var(--sub);margin-top:.5rem">双击进入目录</p></div>`;
+    return;
+  }
+  const ext=path.split('.').pop().toLowerCase();
+  const previewable=['txt','md','py','js','html','css','json','yaml','yml','sh','env','conf','log','svg'];
+  if(previewable.includes(ext)){
+    $('previewContent').innerHTML='<p style="color:var(--sub)">加载中...</p>';
+    fetch(gwUrl()+'/tools/invoke',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+gwToken()},
+      body:JSON.stringify({tool:'file_fetch',args:{node:'localhost',path}})
+    })
+    .then(r=>r.json())
+    .then(d=>{
+      const content=d.result||d.error||'无法读取';
+      $('previewContent').innerHTML=`
+        <div class="info-row"><span class="label">文件名</span><span>${f.name}</span></div>
+        <div class="info-row"><span class="label">大小</span><span>${formatSize(f.size)}</span></div>
+        <div class="info-row"><span class="label">类型</span><span>${ext.toUpperCase()}</span></div>
+        <pre>${escapeHtml(String(content).substring(0,10000))}</pre>
+      `;
+    })
+    .catch(e=>{$('previewContent').innerHTML='<p style="color:var(--red)">加载失败</p>'});
+  }else if(['png','jpg','jpeg','gif','webp','svg'].includes(ext)){
+    $('previewContent').innerHTML=`
+      <div class="info-row"><span class="label">文件名</span><span>${f.name}</span></div>
+      <div class="info-row"><span class="label">大小</span><span>${formatSize(f.size)}</span></div>
+      <p style="color:var(--sub);margin-top:1rem;text-align:center">图片预览需通过 Gateway 访问</p>
+    `;
+  }else{
+    $('previewContent').innerHTML=`
+      <div class="info-row"><span class="label">文件名</span><span>${f.name}</span></div>
+      <div class="info-row"><span class="label">大小</span><span>${formatSize(f.size)}</span></div>
+      <div class="info-row"><span class="label">类型</span><span>${ext.toUpperCase()}</span></div>
+      <p style="color:var(--sub);margin-top:1rem;text-align:center">不支持预览此文件类型</p>
+    `;
+  }
+}
+
+function togglePreview(){
+  previewVisible=!previewVisible;
+  $('previewPanel').classList.toggle('hidden',!previewVisible);
+}
+
+function setViewMode(){renderFiles()}
+
+function showNewFile(){
+  $('modal').innerHTML=`
+    <h3>📄 新建文件</h3>
+    <input id="newFileName" placeholder="文件名 (如: hello.py)">
+    <textarea id="newFileContent" placeholder="文件内容..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doNewFile()">创建</button>
+    </div>`;
+  $('modalOverlay').classList.add('show');
+}
+
+function doNewFile(){
+  const name=$('newFileName').value;
+  const content=$('newFileContent').value;
+  if(!name){toast('请输入文件名','error');return}
+  const path=currentPath+'/'+name;
+  fetch(gwUrl()+'/tools/invoke',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+gwToken()},
+    body:JSON.stringify({tool:'file_write',args:{node:'localhost',path,contentBase64:btoa(unescape(encodeURIComponent(content))),createParents:true}})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.result){toast('文件已创建','success');closeModal();refreshDir()}
+    else toast('创建失败','error');
+  })
+  .catch(()=>toast('请求失败','error'));
+}
+
+function showNewDir(){
+  $('modal').innerHTML=`
+    <h3>📂 新建目录</h3>
+    <input id="newDirName" placeholder="目录名">
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doNewDir()">创建</button>
+    </div>`;
+  $('modalOverlay').classList.add('show');
+}
+
+function doNewDir(){
+  const name=$('newDirName').value;
+  if(!name){toast('请输入目录名','error');return}
+  const path=currentPath+'/'+name;
+  fetch(gwUrl()+'/tools/invoke',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+gwToken()},
+    body:JSON.stringify({tool:'exec',args:{command:'mkdir -p '+path}})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    toast('目录已创建','success');closeModal();refreshDir();
+  })
+  .catch(()=>toast('请求失败','error'));
+}
+
+function execHere(cmd){
+  fetch(gwUrl()+'/tools/invoke',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+gwToken()},
+    body:JSON.stringify({tool:'exec',args:{command:'cd '+currentPath+' && '+cmd}})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    $('previewContent').innerHTML=`<h3 style="margin-bottom:.5rem">$ ${cmd}</h3><pre>${escapeHtml(d.result||d.error||'无输出')}</pre>`;
+    if(!previewVisible)togglePreview();
+  })
+  .catch(()=>toast('执行失败','error'));
+}
+
+function closeModal(){$('modalOverlay').classList.remove('show')}
+function toast(msg,type='success'){
+  const t=$('toast');t.textContent=msg;t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function gwUrl(){return localStorage.getItem('oc-gw-url')||'http://192.168.1.5:18789'}
+function gwToken(){return localStorage.getItem('oc-gw-token')||''}
+
+// Init
+refreshDir();
+</script>
+</body>
+</html>
